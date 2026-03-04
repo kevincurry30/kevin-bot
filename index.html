@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kevin Goon Bot</title>
+<style>
+  :root {
+    --bg: #020617;
+    --fg: #e5e7eb;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --border: #374151;
+    --bot: #a5b4fc;
+    --user: #38bdf8;
+    --admin: #f97316;
+    --secondary: #9ca3af;
+  }
+
+  body.light {
+    --bg: #f9fafb;
+    --fg: #020617;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --border: #d1d5db;
+    --bot: #4338ca;
+    --user: #0369a1;
+    --admin: #c2410c;
+    --secondary: #6b7280;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    margin: 0;
+    padding: 20px;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 5px;
+  }
+
+  #subtitle {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--secondary);
+    margin-bottom: 15px;
+  }
+
+  #app {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  #topBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+  }
+
+  #status {
+    color: var(--secondary);
+  }
+
+  #themeToggle {
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--fg);
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+
+  #chat {
+    border: 1px solid var(--border);
+    padding: 10px;
+    height: 380px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.15);
+    border-radius: 6px;
+  }
+
+  .message {
+    margin: 6px 0;
+    font-size: 0.95rem;
+  }
+
+  .user { color: var(--user); }
+  .bot { color: var(--bot); }
+  .admin { color: var(--admin); }
+
+  .meta {
+    font-size: 0.75rem;
+    color: var(--secondary);
+    margin-left: 4px;
+  }
+
+  #controls {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+  }
+
+  #userInput {
+    flex: 1;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--fg);
+  }
+
+  button {
+    padding: 10px 14px;
+    border-radius: 4px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  button:hover {
+    background: var(--accent-hover);
+  }
+
+  #sideButtons {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+
+  #adminPanel {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px dashed var(--admin);
+    display: none;
+    background: rgba(15,23,42,0.7);
+  }
+
+  label {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.9rem;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--fg);
+  }
+
+  textarea { min-height: 60px; }
+
+  small {
+    color: var(--secondary);
+    font-size: 0.8rem;
+  }
+
+  #commandHint {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: var(--secondary);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Kevin Goon Bot 🤖</h1>
+  <div id="subtitle">Playful web chat bot with a secret admin mode</div>
+
+  <div id="topBar">
+    <div id="status">Status: <span id="statusText">Normal</span></div>
+    <button id="themeToggle" type="button">Toggle theme</button>
+  </div>
+
+  <div id="chat"></div>
+
+  <div id="controls">
+    <input id="userInput" type="text" placeholder="Type a message... (/help for commands, /admin for secret)" autocomplete="off">
+    <button type="button" onclick="sendMessage()">Send</button>
+  </div>
+
+  <div id="sideButtons">
+    <button type="button" onclick="clearChat()">Clear chat</button>
+    <button type="button" onclick="showHelp()">Show commands</button>
+  </div>
+
+  <div id="commandHint">Commands: /help, /admin, /mood happy|chill|salty</div>
+
+  <div id="adminPanel">
+    <h3 class="admin">Admin Control Panel</h3>
+    <label>
+      Bot name:
+      <input type="text" id="botNameInput">
+    </label>
+    <label>
+      Default personality / style:
+      <textarea id="personalityInput"></textarea>
+    </label>
+    <label>
+      Admin note (text shown in admin replies):
+      <textarea id="adminNoteInput"></textarea>
+    </label>
+    <label>
+      Bot mood:
+      <select id="moodSelect">
+        <option value="normal">Normal</option>
+        <option value="happy">Happy</option>
+        <option value="chill">Chill</option>
+        <option value="salty">Salty</option>
+      </select>
+    </label>
+    <button type="button" onclick="saveAdminSettings()">Save settings</button>
+    <small>Settings are stored in this browser using localStorage.</small>
+  </div>
+</div>
+
+<script>
+  // ----- State -----
+  let adminMode = false;
+  let botName = "Kevin Goon Bot";
+  let personality = "Friendly, slightly goofy assistant who keeps things light.";
+  let adminNote = "Admin sees more direct and detailed responses.";
+  let mood = "normal"; // normal | happy | chill | salty
+
+  const chatEl = document.getElementById("chat");
+  const inputEl = document.getElementById("userInput");
+  const adminPanelEl = document.getElementById("adminPanel");
+  const statusTextEl = document.getElementById("statusText");
+  const themeToggleBtn = document.getElementById("themeToggle");
+
+  // ----- Utility -----
+  function safeText(text) {
+    return String(text ?? "")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function timestamp() {
+    const d = new Date();
+    const h = d.getHours().toString().padStart(2, "0");
+    const m = d.getMinutes().toString().padStart(2, "0");
+    return `${h}:${m}`;
+  }
+
+  function addMessage(sender, text, type = "bot") {
+    const msg = document.createElement("div");
+    msg.className = `message ${type}`;
+    msg.innerHTML = `<strong>${safeText(sender)}:</strong> ${safeText(text)} <span class="meta">${timestamp()}</span>`;
+    chatEl.appendChild(msg);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  function updateStatus() {
+    if (adminMode) {
+      statusTextEl.textContent = "Admin mode";
+      statusTextEl.style.color = "var(--admin)";
+    } else {
+      statusTextEl.textContent = "Normal";
+      statusTextEl.style.color = "var(--secondary)";
+    }
+  }
+
+  function applySavedSettings() {
+    try {
+      const raw = localStorage.getItem("kevinGoonBotSettings");
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s.botName) botName = s.botName;
+      if (s.personality) personality = s.personality;
+      if (s.adminNote) adminNote = s.adminNote;
+      if (s.mood) mood = s.mood;
+    } catch (e) {
+      console.warn("Could not load settings", e);
+    }
+  }
+
+  function saveSettingsToStorage() {
+    try {
+      const data = { botName, personality, adminNote, mood };
+      localStorage.setItem("kevinGoonBotSettings", JSON.stringify(data));
+    } catch (e) {
+      console.warn("Could not save settings", e);
+    }
+  }
+
+  // ----- Bot logic -----
+  function moodPrefix() {
+    switch (mood) {
+      case "happy": return "😄 ";
+      case "chill": return "😎 ";
+      case "salty": return "😏 ";
+      default: return "";
+    }
+  }
+
+  function fakeAIResponse(text) {
+    const lower = text.toLowerCase();
+
+    if (lower === "/help") {
+      return "Commands: /help, /admin, /mood happy|chill|salty, /mood normal.";
+    }
+
+    if (lower.startsWith("/mood ")) {
+      const value = lower.split(" ")[1];
+      const valid = ["normal", "happy", "chill", "salty"];
+      if (valid.includes(value)) {
+        mood = value;
+        saveSettingsToStorage();
+        return `Mood set to ${value}.`;
+      }
+      return "Unknown mood. Try: normal, happy, chill, salty.";
+    }
+
+    if (lower.includes("hello") || lower.includes("hi ")) {
+      if (mood === "happy") return moodPrefix() + "Hey hey! Great to see you here!";
+      if (mood === "chill") return moodPrefix() + "Yo. What’s good?";
+      if (mood === "salty") return moodPrefix() + "Oh, it's you again. What now?";
+      return moodPrefix() + "Hey! I'm " + botName + ". What's up?";
+    }
+
+    if (lower.includes("help")) {
+      return "Need help? Type /help to see a list of commands.";
+    }
+
+    if (lower.includes("joke")) {
+      if (mood === "salty") {
+        return moodPrefix() + "You want a joke? Look in your browser history. Just kidding… maybe.";
+      }
+      return moodPrefix() + "Why did the developer go broke? Because he used up all his cache.";
+    }
+
+    return moodPrefix() + "I'm " + botName + ". " + personality + " You said: \"" + text + "\".";
+  }
+
+  function fakeAdminResponse(text) {
+    return moodPrefix() + "[ADMIN MODE] " + adminNote + " Input: \"" + text + "\".";
+  }
+
+  // ----- Commands -----
+  function processCommand(text) {
+    const lower = text.toLowerCase();
+
+    if (lower === "/help") {
+      showHelp();
+      return true;
+    }
+
+    if (text === "/admin") {
+      const code = prompt("Enter admin code:");
+      if (code === "kevinbryant") {
+        adminMode = true;
+        adminPanelEl.style.display = "block";
+        document.getElementById("botNameInput").value = botName;
+        document.getElementById("personalityInput").value = personality;
+        document.getElementById("adminNoteInput").value = adminNote;
+        document.getElementById("moodSelect").value = mood;
+        addMessage(botName, "Admin mode activated. You can now edit my settings.", "admin");
+        updateStatus();
+      } else {
+        addMessage(botName, "Incorrect code. Access denied.", "bot");
+      }
+      return true;
+    }
+
+    if (lower.startsWith("/mood ")) {
+      const reply = fakeAIResponse(text);
+      addMessage(botName, reply, adminMode ? "admin" : "bot");
+      return true;
+    }
+
+    return false;
+  }
+
+  // ----- Public functions -----
+  function sendMessage() {
+    const raw = inputEl.value;
+    const text = raw.trim();
+    if (!text) return;
+
+    addMessage("You", text, "user");
+    inputEl.value = "";
+
+    if (processCommand(text)) {
+      return;
+    }
+
+    const reply = adminMode ? fakeAdminResponse(text) : fakeAIResponse(text);
+    addMessage(botName, reply, adminMode ? "admin" : "bot");
+  }
+
+  function clearChat() {
+    chatEl.innerHTML = "";
+    addMessage(botName, "Chat cleared. Fresh start!", adminMode ? "admin" : "bot");
+  }
+
+  function showHelp() {
+    const helpText =
+      "Available commands:\n" +
+      "• /help – show this help\n" +
+      "• /admin – enter secret admin mode (code required)\n" +
+      "• /mood normal|happy|chill|salty – change bot mood";
+    addMessage(botName, helpText, adminMode ? "admin" : "bot");
+  }
+
+  function saveAdminSettings() {
+    const nameInput = document.getElementById("botNameInput").value.trim();
+    const personalityInput = document.getElementById("personalityInput").value.trim();
+    const adminNoteInput = document.getElementById("adminNoteInput").value.trim();
+    const moodValue = document.getElementById("moodSelect").value;
+
+    if (nameInput) botName = nameInput;
+    if (personalityInput) personality = personalityInput;
+    if (adminNoteInput) adminNote = adminNoteInput;
+    mood = moodValue;
+
+    saveSettingsToStorage();
+    addMessage(botName, "Admin settings updated and saved.", "admin");
+  }
+
+  // Theme toggle
+  function toggleTheme() {
+    document.body.classList.toggle("light");
+  }
+
+  themeToggleBtn.addEventListener("click", toggleTheme);
+
+  // Enter key
+  inputEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // ----- Init -----
+  (function init() {
+    applySavedSettings();
+    updateStatus();
+    addMessage(botName, "Hey, I'm Kevin Goon Bot. Type something, /help for commands, or /admin if you know the secret.", "bot");
+  })();
+</script>
+</body>
+</html>
